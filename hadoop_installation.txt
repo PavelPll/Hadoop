@@ -1,0 +1,157 @@
+(1) ON EACH node:
+sudo apt update
+sudo apt-get update
+
+(2) INSTALL JAVA 8
+sudo apt install default-jdk default-jre -y
+sudo apt install openjdk-8-jdk
+sudo update-alternatives --config java
+java --version
+dirname $(dirname $(readlink -f $(which java)))
+/usr/lib/jvm/java-11-openjdk-amd64
+/usr/lib/jvm/java-8-openjdk-amd64/jre
+
+(3) GET HADOOP
+wget https://dlcdn.apache.org/hadoop/common/hadoop-3.3.4/hadoop-3.3.4.tar.gz
+tar xzf hadoop-3.3.4.tar.gz
+mv hadoop-3.3.4 hadoop
+
+(4)HADOOP CONFIGURATION
+(4a)nano ~/.bashrc
+export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
+export HADOOP_HOME=/home/ubuntu/hadoop
+export HADOOP_INSTALL=$HADOOP_HOME
+export HADOOP_MAPRED_HOME=$HADOOP_HOME
+export HADOOP_COMMON_HOME=$HADOOP_HOME
+export HADOOP_HDFS_HOME=$HADOOP_HOME
+export HADOOP_YARN_HOME=$HADOOP_HOME
+export HADOOP_COMMON_LIB_NATIVE_DIR=$HADOOP_HOME/lib/native
+export PATH=$PATH:$HADOOP_HOME/sbin:$HADOOP_HOME/bin
+export HADOOP_OPTS="-Djava.library.path=$HADOOP_HOME/lib/native"
+source ~/.bashrc
+
+(4b)JAVA installation path
+nano $HADOOP_HOME/etc/hadoop/hadoop-env.sh
+for 11: export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
+for 8: export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64/jre
+
+(4c)On the master node, create a namenode and datanode directory using the following command.
+rm -rf ~/hadoopdata/hdfs/{namenode,datanode}
+mkdir -p ~/hadoopdata/hdfs/{namenode,datanode}
+
+ON MASTER
+###########################Master#########################
+(4d)nano $HADOOP_HOME/etc/hadoop/core-site.xml
+<configuration>
+<property>
+<name>fs.defaultFS</name>
+<value>hdfs://masternode:9000</value>
+</property>
+</configuration>
+----------------------------------------
+(4e)nano $HADOOP_HOME/etc/hadoop/hdfs-site.xml
+<configuration>
+<property>
+<name>dfs.replication</name>
+<value>3</value>
+</property>
+
+<property>
+<name>dfs.name.dir</name>
+<value>file:///home/ubuntu/hadoopdata/hdfs/namenode</value>
+</property>
+
+<property>
+<name>dfs.data.dir</name>
+<value>file:///home/ubuntu/hadoopdata/hdfs/datanode</value>
+</property>
+
+<property>
+<name>dfs.block.size<name>
+<value>33554432<value>
+<description>Block size<description>
+<property>
+</configuration>
+120MO 134217728
+64MO 67108864 
+32MO 33554432
+---------------------------------------
+(4f)nano $HADOOP_HOME/etc/hadoop/workers
+datanode1
+datanode2
+datanode3
+---------------------------------------
+from here: https://www.linode.com/docs/guides/how-to-install-and-set-up-hadoop-cluster/
+(4g)nano /home/ubuntu/hadoop/etc/hadoop/mapred-site.xml
+<configuration>
+    <property>
+            <name>mapreduce.framework.name</name>
+            <value>yarn</value>
+    </property>
+    <property>
+            <name>yarn.app.mapreduce.am.env</name>
+            <value>HADOOP_MAPRED_HOME=$HADOOP_HOME</value>
+    </property>
+    <property>
+            <name>mapreduce.map.env</name>
+            <value>HADOOP_MAPRED_HOME=$HADOOP_HOME</value>
+    </property>
+    <property>
+            <name>mapreduce.reduce.env</name>
+            <value>HADOOP_MAPRED_HOME=$HADOOP_HOME</value>
+    </property>
+</configuration>
+mapred.tasktracker.map.tasks.maximum         2  
+mapred.tasktracker.reduce.tasks.maximum      2
+------------------------------------------ 
+(4h)nano ~/hadoop/etc/hadoop/yarn-site.xml
+<configuration>
+    <property>
+            <name>yarn.acl.enable</name>
+            <value>0</value>
+    </property>
+
+    <property>
+            <name>yarn.resourcemanager.hostname</name>
+            <value>masternode</value>
+    </property>
+
+    <property>
+            <name>yarn.nodemanager.aux-services</name>
+            <value>mapreduce_shuffle</value>
+    </property> 
+------------------------------------
+(4i)scp $HADOOP_HOME/etc/hadoop/* ubuntu@datanode1:$HADOOP_HOME/etc/hadoop/
+scp $HADOOP_HOME/etc/hadoop/* ubuntu@datanode2:$HADOOP_HOME/etc/hadoop/
+
+(5)from master
+hdfs namenode -format
+
+(6)start-dfs.sh
+start-dfs.sh
+stop-all.sh
+start-dfs.sh
+jps Java Virtual Machine Process Status tool. 
+hdfs dfsadmin -report
+
+(7)CHECK
+hdfs dfsadmin -report
+yarn node -list -all
+
+(8)SERVER
+go to http://masternode:9870
+check again for the presence of 4 datanodes
+check hdfs
+
+-----------end---------------
+
+NO NEED:
+NODEMANAGER?
+Next, edit the yarn-site.xml file on both datanode.
+nano $HADOOP_HOME/etc/hadoop/yarn-site.xml
+<property>
+<name>yarn.resourcemanager.hostname</name>
+<value>masternode</value>
+</property>
+
+

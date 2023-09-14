@@ -1,0 +1,58 @@
+for details see "Hive Metastore" in
+https://cwiki.apache.org/confluence/plugins/servlet/mobile?contentId=27362077#content/view/27362077
+
+DERBY for multiple hive users 
+(1)GET DERBY database
+ssh datanode3
+wget https://archive.apache.org/dist/db/derby/db-derby-10.14.1.0/db-derby-10.14.1.0-bin.tar.gz
+tar xzf db-derby-10.14.1.0-bin.tar.gz
+mv db-derby-10.14.1.0-bin db_derby
+
+(2)create ENV   
+nano .bashrc
+export DERBY_INSTALL=/home/ubuntu/db-derby   
+export DERBY_HOME=/home/ubuntu/db-derby
+export HADOOP=/home/ubuntu/hadoop/bin/hadoop
+source .bashrc
+ 
+(3)LAUNCH DB on port 1527 of datanode3
+cd db-derby
+mkdir data
+cd data
+nohup /home/ubuntu/db-derby/bin/startNetworkServer -h 0.0.0.0 &
+
+(4)CHECK if DB server is on
+nmap -p 1527 172.31.13.177
+1527/tcp open  tlisrv
+
+(5)HIVE configuration
+nano $HIVE_HOME/conf/hive-site.xml
+---
+(5a)it was (see hive_installation.txt):
+jdbc:derby:;databaseName=metastore_db;create=true
+it should be:
+jdbc:postgresql://myhost/db?ssl=true
+for debry it has to be:
+jdbc:derby://172.31.13.177:1527/metastore_db;create=true
+---
+(5b)it was
+org.apache.derby.jdbc.EmbeddedDriver
+change to
+org.apache.derby.jdbc.ClientDriver
+
+(5d)
+cp /home/ubuntu/db-derby/lib/derbyclient.jar /home/ubuntu/hive/lib
+cp /home/ubuntu/db-derby/lib/derbytools.jar /home/ubuntu/hive/lib
+cp /home/ubuntu/db-derby/lib/derbyclient.jar /home/ubuntu/hadoop/lib
+cp /home/ubuntu/db-derby/lib/derbytools.jar /home/ubuntu/hadoop/lib
+scp /home/ubuntu/db-derby/lib/derbyclient.jar masternode:/home/ubuntu/hadoop/lib
+scp /home/ubuntu/db-derby/lib/derbytools.jar masternode:/home/ubuntu/hadoop/lib
+
+(6)
+$HIVE_HOME/bin/schematool -initSchema -dbType derby
+if it does not work do this:
+find /home/ubuntu -name metastore_db*
+mv $HIVE_HOME/metastore_db $HIVE_HOME/metastore_db2.tmp
+$HIVE_HOME/bin/schematool -initSchema -dbType derby
+du -c metastore_db
+-------------end-----------------------

@@ -1,0 +1,69 @@
+AWS amazon, 4 servers:
+t3.medium masternode+datanode0  (2CPU, 4GO RAM, 10GO)
+t2.small datanode1  (1CPU, 2GO RAM, 10GO)
+t2.micro datanode2  (1CPU, 1GO RAM, 10GO)
+t3.medium datanode3  (2CPU, 4GO RAM, 10GO)
+
+DISTRIBUTE over all nodes:
+-------------------------------
+public key: aws.pem
+scp .ssh/aws.pem ubuntu@datanode1:/home/ubuntu/.ssh/aws.pem
+scp .ssh/aws.pem ubuntu@datanode2:/home/ubuntu/.ssh/aws.pem
+scp .ssh/aws.pem ubuntu@datanode3:/home/ubuntu/.ssh/aws.pem
+chmod 600 ~/.ssh/aws.pem
+sudo hostnamectl set-hostname masternode datanode123
+------------------------------
+cd ~/.ssh
+nano config
+Host masternode
+    HostName 172.31.9.8
+    User ubuntu
+    Port 22
+    IdentityFile ~/.ssh/aws.pem
+Host localhost
+    HostName 127.0.0.1
+    User ubuntu
+    Port 22
+    IdentityFile ~/.ssh/aws.pem
+Host datanode1
+    HostName 172.31.11.22
+    User ubuntu
+    Port 22
+    IdentityFile ~/.ssh/aws.pem
+Host datanode2
+    HostName 172.31.14.135
+    User ubuntu
+    Port 22
+    IdentityFile ~/.ssh/aws.pem
+Host datanode3
+    HostName 172.31.13.177
+    User ubuntu
+    Port 22
+    IdentityFile ~/.ssh/aws.pem
+scp .ssh/config ubuntu@datanode1:/home/ubuntu/.ssh/config
+scp .ssh/config ubuntu@datanode2:/home/ubuntu/.ssh/config
+scp .ssh/config ubuntu@datanode3:/home/ubuntu/.ssh/config
+---------------------------------------------
+sudo nano /etc/hosts
+127.0.0.1 localhost
+172.31.9.8 masternode
+172.31.11.22 datanode1
+172.31.14.135 datanode2
+172.31.13.177 datanode3
+----------end----------------
+
+NO NEED:
+
+get ip from windows
+PowerShell
+(Invoke-WebRequest ifconfig.me/ip).Content.Trim()
+https://cloudinfrastructureservices.co.uk/how-to-setup-hadoop-cluster-multi-node-on-ubuntu/
+
+on master: ssh-keygen -t rsa
+cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
+ssh-copy-id ubuntu@datanode1
+ssh-copy-id ubuntu@datanode2
+ssh 'ubuntu@datanode2'
+ssh 'ubuntu@masternode'
+127.0.0.1
+ssh 'ubuntu@localhost'
